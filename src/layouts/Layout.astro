@@ -256,7 +256,9 @@ const { title } = Astro.props;
     <div class="flex-1 overflow-y-auto scr flex flex-col sm:flex-row">
       <!-- Image -->
       <div class="w-full sm:w-2/5 aspect-square flex-shrink-0 relative">
-        <img id="details-img" src="" alt="" class="absolute inset-0 w-full h-full object-contain">
+        <img id="details-img" src="" alt="" class="absolute inset-0 w-full h-full object-contain"
+             referrerpolicy="no-referrer"
+             onerror="this.src='https://placehold.co/600x600?text=No+Image+Found'; this.onerror=null;">
       </div>
       
       <!-- Content -->

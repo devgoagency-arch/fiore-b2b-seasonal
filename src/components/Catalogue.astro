@@ -27,12 +27,12 @@ const { products } = Astro.props;
 
     <!-- Filters rendered by JS -->
     <div id="category-filters-container" class="sticky z-40 bg-cream py-4 mb-8" style="top:96px;">
-      <div class="flex items-center justify-between sm:justify-center gap-4 relative">
+      <div class="flex flex-col lg:flex-row items-center justify-between gap-4 relative">
         <!-- Desktop Pills -->
-        <div id="category-filters-desktop" class="hidden sm:flex flex-wrap justify-center gap-3"></div>
+        <div id="category-filters-desktop" class="hidden sm:flex flex-wrap items-center justify-start gap-2 flex-1"></div>
         
         <!-- Mobile Dropdown -->
-        <div id="category-filters-mobile" class="sm:hidden relative flex-1">
+        <div id="category-filters-mobile" class="sm:hidden w-full relative">
           <button onclick="toggleMobileCategories()" type="button" class="w-full flex items-center justify-between bg-white px-4 py-2.5 rounded-full border border-gray-200 text-sm font-medium font-rob shadow-sm">
             <span id="mobile-category-label">Filter by Category: All</span>
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -41,7 +41,7 @@ const { products } = Astro.props;
         </div>
 
         <!-- Go to Cart -->
-        <button type="button" onclick="document.getElementById('preorder')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-4 py-2 text-xs font-rob whitespace-nowrap sm:absolute sm:right-0 bg-cream hover:bg-[#80131d]">↓ Go to Cart</button>
+        <button type="button" onclick="document.getElementById('preorder')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-4 py-2 text-xs font-rob whitespace-nowrap bg-cream hover:bg-[#80131d] flex-shrink-0">↓ Go to Cart</button>
       </div>
     </div>
 
@@ -164,22 +164,15 @@ const { products } = Astro.props;
 // ── Product data ─────────────────────────────────────────────
 const BASE_PRODUCTS = window.BASE_PRODUCTS || [];
 
-const CATEGORIES = ['Oils', 'Sweets', 'Preserves'];
-const PRODUCTS = [];
+// Connect directly to backend payload injected through the Astro prop
+const PRODUCTS = BASE_PRODUCTS.map(p => ({
+  ...p,
+  qty: 0,
+}));
 
-// Simulate 100 products
-if (BASE_PRODUCTS.length > 0) {
-  for (let i = 0; i < 100; i++) {
-    const base = BASE_PRODUCTS[i % BASE_PRODUCTS.length];
-    PRODUCTS.push({
-      ...base,
-      id: i + 1,
-      sku: base.sku + '-' + (i + 1),
-      category: CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)],
-      qty: 0,
-    });
-  }
-}
+// Dynamically extract categories directly from payload attributes
+const allCats = PRODUCTS.map(p => p.category).filter(c => c && c !== 'Uncategorized');
+const CATEGORIES = [...new Set(allCats)].sort();
 
 let activeCategory = 'All';
 let currentPage = 1;
@@ -242,7 +235,7 @@ function renderProducts(append = false) {
       <!-- Product image -->
       <div class="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-white rounded-xl flex items-center justify-center overflow-hidden aspect-square relative">
         <img src="${p.img}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain"
-             onerror="this.parentElement.style.background='#f5f3ef'">
+             referrerpolicy="no-referrer" loading="lazy">
       </div>
 
       <!-- Info + controls -->

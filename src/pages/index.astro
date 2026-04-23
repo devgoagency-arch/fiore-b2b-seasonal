@@ -47,7 +47,10 @@ try {
 
   if (WC_API_URL && WC_CONSUMER_KEY && WC_CONSUMER_SECRET) {
     const authHeader = 'Basic ' + btoa(`${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`);
-    const res = await fetch(`${WC_API_URL}/wp-json/wc/v3/products?per_page=100`, {
+    const fetchUrl = import.meta.env.WC_API_URL + '/products?per_page=100&status=publish';
+    console.log("Intentando conectar a:", fetchUrl);
+
+    const res = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
@@ -57,15 +60,64 @@ try {
 
     if (res.ok) {
       const data = await res.json();
-      // TODO: Map WooCommerce payload fields to the Catalogue format
-      // finalProducts = data.map(...)
-      console.log(`[WC API] Successfully fetched ${data.length} products.`);
+      
+      finalProducts = data.reduce((acc: any[], item: any) => {
+        // Validation 1: Only map elements tagged 'holiday-seasonal'
+        const isSeasonal = item.categories?.some((c: any) => c.slug === 'holiday-seasonal');
+        if (!isSeasonal) return acc; // discard immediately
+
+        // Validation 2: Child Category processing or Fallback to Parent
+        const childCat = item.categories?.find((c: any) => c.slug !== 'holiday-seasonal');
+        const finalCategory = childCat ? childCat.name.replace(/&amp;/g, '&') : "Holiday Seasonal";
+
+        let rawContent = item.description ? item.description : (item.short_description || "");
+        
+        let plainDesc = "";
+        if (rawContent) {
+          let preSpaced = rawContent.replace(/<br\s*\/?>/gi, " ").replace(/<\/p>/gi, " ");
+          plainDesc = preSpaced.replace(/<\/?[^>]+(>|$)/g, " ").replace(/\s+/g, " ").trim();
+        }
+          
+        let caseSize = "N/A";
+        // Regex to match "Case Size: value" dropping the period bound as it caused N/A faults
+        const caseRegex = /Case(?: Size)?\s*:\s*([^<\n\.]+)/i;
+        const match = plainDesc.match(caseRegex);
+
+        if (match && match[1]) {
+          caseSize = match[1].trim();
+          plainDesc = plainDesc.replace(match[0], "").trim();
+          plainDesc = plainDesc.replace(/^[\.,\-\s]+|[\.,\-\s]+$/g, "");
+        } else {
+          const caseAttr = item.attributes?.find((a: any) => 
+            a.name.toLowerCase() === 'case size' || a.name.toLowerCase() === 'casesize'
+          );
+          if (caseAttr && caseAttr.options?.length > 0) {
+            caseSize = caseAttr.options[0];
+          }
+        }
+
+        const mappedProd = {
+          id: item.id,
+          sku: item.sku || `WC-${item.id}`,
+          name: item.name.replace(/&amp;/g, '&'),
+          description: plainDesc,
+          caseSize: caseSize,
+          price: parseFloat(item.price) || 0,
+          img: item.images && item.images.length > 0 ? item.images[0].src : null,
+          category: finalCategory
+        };
+        
+        acc.push(mappedProd);
+        return acc;
+      }, []);
+
+      console.log(`[WC API] Successfully fetched and parsed ${finalProducts.length} published products.`);
     } else {
       console.warn(`[WC API] Returned status ${res.status}. Falling back to mock data.`);
     }
   }
 } catch (error) {
-  console.error('[WC API] Network or fetch error. Falling back to mock data.', error);
+  console.error('[WC API] Network or fetch error. Falling back to BASE_PRODUCTS_MOCK.', error);
 }
 ---
 
