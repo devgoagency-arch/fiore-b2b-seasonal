@@ -1,0 +1,559 @@
+---
+export interface Props {
+  products: {
+    sku: string;
+    name: string;
+    description: string;
+    caseSize: string;
+    price: number;
+    img: string;
+  }[];
+}
+
+const { products } = Astro.props;
+---
+
+<!-- ════════════════════════════════════════════════════════════
+     4 · PRODUCT CATALOGUE — LIST VIEW
+════════════════════════════════════════════════════════════════ -->
+<section id="catalogue" class="py-16">
+  <div class="max-w-4xl mx-auto px-6">
+
+    <div class="text-center mb-10">
+      <p class="font-rob font-medium text-xs tracking-[.2em] uppercase mb-2" style="color:#acb370">Our Selection</p>
+      <h2 class="font-cap text-3xl" style="color:#a81624">Curated Wholesale Products</h2>
+      <p class="font-rob text-sm text-gray-500 mt-2">All prices are per case (CAD) · Subject to stock confirmation</p>
+    </div>
+
+    <!-- Filters rendered by JS -->
+    <div id="category-filters-container" class="sticky z-40 bg-cream py-4 mb-8" style="top:96px;">
+      <div class="flex items-center justify-between sm:justify-center gap-4 relative">
+        <!-- Desktop Pills -->
+        <div id="category-filters-desktop" class="hidden sm:flex flex-wrap justify-center gap-3"></div>
+        
+        <!-- Mobile Dropdown -->
+        <div id="category-filters-mobile" class="sm:hidden relative flex-1">
+          <button onclick="toggleMobileCategories()" type="button" class="w-full flex items-center justify-between bg-white px-4 py-2.5 rounded-full border border-gray-200 text-sm font-medium font-rob shadow-sm">
+            <span id="mobile-category-label">Filter by Category: All</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="mobile-category-dropdown" class="hidden absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden"></div>
+        </div>
+
+        <!-- Go to Cart -->
+        <button type="button" onclick="document.getElementById('preorder')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-4 py-2 text-xs font-rob whitespace-nowrap sm:absolute sm:right-0 bg-cream hover:bg-[#80131d]">↓ Go to Cart</button>
+      </div>
+    </div>
+
+    <!-- Products rendered by JS -->
+    <div id="product-list" class="space-y-4"></div>
+
+    <div id="load-more-container" class="text-center mt-10 hidden">
+      <button onclick="loadMoreProducts()" type="button" class="btn btn-outline px-8 py-3 text-sm font-rob border-2 font-medium tracking-wide">Load More Products</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     6 · PRE-ORDER FORM
+════════════════════════════════════════════════════════════════ -->
+<section id="preorder" class="py-16 bg-cream">
+  <div class="max-w-3xl mx-auto px-6">
+
+    <div class="text-center mb-10">
+      <p class="font-rob font-medium text-xs tracking-[.2em] uppercase mb-2" style="color:#acb370">Ready to Order?</p>
+      <h2 class="font-cap text-3xl" style="color:#a81624">Submit Your Pre-Order</h2>
+      <p class="font-rob text-sm text-gray-500 mt-2">Our team will confirm availability within 24–48 business hours.</p>
+    </div>
+
+    <!-- Order summary card -->
+    <div class="bg-white rounded-3xl p-6 mb-5 shadow-sm border border-cream">
+      <h3 class="font-cap mb-4 flex items-center gap-2 text-base" style="color:#80131d">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Order Summary
+      </h3>
+      <div id="sum-body" class="font-rob text-sm">
+        <p class="text-gray-400 italic text-sm">No items selected — browse the catalogue above to add products.</p>
+      </div>
+      <div id="sum-totals" class="hidden border-t pt-4 mt-4 space-y-1" style="border-color:#f5f3ef">
+        <div class="flex justify-between text-sm font-medium">
+          <span class="font-cap" style="color:#1a1a1a">Total Cases:</span>
+          <span id="tot-cases" class="text-gray-700">0</span>
+        </div>
+        <div class="flex justify-between text-sm font-semibold">
+          <span class="font-cap" style="color:#80131d">Estimated Total:</span>
+          <span id="tot-price" style="color:#80131d">$0.00 CAD</span>
+        </div>
+        <p class="text-gray-400 text-xs pt-1">*Estimate only. Final pricing confirmed on order review.</p>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form id="order-form" onsubmit="handleSubmit(event)" class="bg-white rounded-3xl p-8 shadow-sm border border-cream">
+      <div class="grid sm:grid-cols-2 gap-5">
+
+        <div class="flex flex-col gap-1.5">
+          <label class="font-rob text-sm font-medium uppercase tracking-wide" style="color:#1a1a1a">Full Name <span style="color:#80131d">*</span></label>
+          <input id="f-name" type="text" required placeholder="Jane Smith" class="fld w-full border border-gray-200 rounded-full px-4 py-2.5 text-base font-rob transition-all">
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="font-rob text-sm font-medium uppercase tracking-wide" style="color:#1a1a1a">Company Name <span style="color:#80131d">*</span></label>
+          <input id="f-company" type="text" required placeholder="Acme Fine Foods Inc." class="fld w-full border border-gray-200 rounded-full px-4 py-2.5 text-base font-rob transition-all">
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="font-rob text-sm font-medium uppercase tracking-wide" style="color:#1a1a1a">Email Address <span style="color:#80131d">*</span></label>
+          <input id="f-email" type="email" required placeholder="jane@acmefoods.ca" class="fld w-full border border-gray-200 rounded-full px-4 py-2.5 text-base font-rob transition-all">
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="font-rob text-sm font-medium uppercase tracking-wide" style="color:#1a1a1a">Business Category <span style="color:#80131d">*</span></label>
+          <div class="relative">
+            <select id="f-category" required class="fld w-full border border-gray-200 rounded-full px-4 py-2.5 text-base font-rob transition-all appearance-none bg-white pr-8">
+              <option value="" disabled selected>Select your category…</option>
+              <option>Specialty Food Store</option>
+              <option>Restaurant / Café</option>
+              <option>Cheese Shop</option>
+              <option>Online Market</option>
+              <option>Hotel / Hospitality</option>
+              <option>Supermarket / Grocery</option>
+              <option>Other</option>
+            </select>
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex flex-col gap-1.5 mt-5">
+        <label class="font-rob text-sm font-medium uppercase tracking-wide" style="color:#1a1a1a">Additional Notes</label>
+        <textarea id="f-notes" rows="3" placeholder="Delivery requirements, special requests, questions…" class="fld w-full border border-gray-200 rounded-2xl px-4 py-3 text-base font-rob transition-all resize-none"></textarea>
+      </div>
+
+      <div class="mt-7 text-center">
+        <div class="flex flex-col-reverse sm:flex-row items-center justify-center gap-4">
+          <button type="button" onclick="document.getElementById('catalogue')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-8 py-3.5 font-cap text-base bg-white hover:bg-[#80131d]">
+            ↑ Keep Shopping
+          </button>
+          <button type="submit" class="btn btn-red px-10 py-3.5 font-cap text-base">
+            Send Pre-Order Request
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
+        </div>
+        <p class="text-gray-400 text-xs mt-3 font-rob">
+          This is a pre-order request — not a confirmed purchase. A Fiore Foods representative will follow up shortly.
+        </p>
+      </div>
+
+    </form>
+  </div>
+</section>
+
+<!-- Send props to global window to bypass scoping -->
+<script is:inline set:html={`window.BASE_PRODUCTS = ${JSON.stringify(products)};`} />
+
+<script is:inline>
+// ── Product data ─────────────────────────────────────────────
+const BASE_PRODUCTS = window.BASE_PRODUCTS || [];
+
+const CATEGORIES = ['Oils', 'Sweets', 'Preserves'];
+const PRODUCTS = [];
+
+// Simulate 100 products
+if (BASE_PRODUCTS.length > 0) {
+  for (let i = 0; i < 100; i++) {
+    const base = BASE_PRODUCTS[i % BASE_PRODUCTS.length];
+    PRODUCTS.push({
+      ...base,
+      id: i + 1,
+      sku: base.sku + '-' + (i + 1),
+      category: CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)],
+      qty: 0,
+    });
+  }
+}
+
+let activeCategory = 'All';
+let currentPage = 1;
+const pageSize = 12;
+
+function renderFilters() {
+  const cats = ['All', ...CATEGORIES];
+  
+  // Desktop
+  const desktopContainer = document.getElementById('category-filters-desktop');
+  if(desktopContainer) {
+    desktopContainer.innerHTML = cats.map(c => `
+      <button onclick="filterProducts('${c}')" type="button" class="btn ${activeCategory === c ? 'btn-red' : 'btn-outline'} px-5 py-2 text-sm font-rob">${c}</button>
+    `).join('');
+  }
+
+  // Mobile
+  const mobileLabel = document.getElementById('mobile-category-label');
+  const mobileDropdown = document.getElementById('mobile-category-dropdown');
+  if(mobileLabel && mobileDropdown) {
+    mobileLabel.textContent = `Filter by Category: ${activeCategory}`;
+    mobileDropdown.innerHTML = cats.map(c => `
+      <button onclick="filterProducts('${c}'); toggleMobileCategories();" type="button" class="w-full text-left px-4 py-3 text-sm font-rob border-b border-gray-50 last:border-0 ${activeCategory === c ? 'bg-cream text-brand font-bold' : 'hover:bg-gray-50 transition-colors'}">${c}</button>
+    `).join('');
+  }
+}
+
+function toggleMobileCategories() {
+  const dropdown = document.getElementById('mobile-category-dropdown');
+  if(dropdown) dropdown.classList.toggle('hidden');
+}
+
+function filterProducts(cat) {
+  activeCategory = cat;
+  currentPage = 1;
+  renderFilters();
+  renderProducts(false);
+}
+
+function loadMoreProducts() {
+  currentPage++;
+  renderProducts(true);
+}
+
+// ── Render product rows ───────────────────────────────────────
+function renderProducts(append = false) {
+  const filtered = activeCategory === 'All' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
+  
+  const start = append ? (currentPage - 1) * pageSize : 0;
+  const end = currentPage * pageSize;
+  const toRender = filtered.slice(start, end);
+
+  const html = toRender.map(p => {
+    const isActive = p.qty > 0;
+    const rowBg = isActive ? 'bg-[#f5f3ef]' : 'bg-white';
+    const rowBorder = isActive ? '#80131d' : '#f0ece6';
+    return `
+    <div class="prow ${rowBg} rounded-3xl overflow-hidden flex flex-row flex-wrap sm:flex-nowrap items-center p-4 gap-4 shadow-sm transition-colors duration-200" style="border:1px solid ${rowBorder}" data-id="${p.id}">
+
+      <!-- Product image -->
+      <div class="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-white rounded-xl flex items-center justify-center overflow-hidden aspect-square relative">
+        <img src="${p.img}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain"
+             onerror="this.parentElement.style.background='#f5f3ef'">
+      </div>
+
+      <!-- Info + controls -->
+      <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+        <!-- Text info -->
+        <div class="flex-1 min-w-0 pr-2">
+          <div class="text-sm font-bold mb-1" style="color:#acb370">${p.category.toUpperCase()}</div>
+          <h3 class="font-cap text-carbon leading-snug mb-1 text-sm sm:text-base lg:text-lg font-bold">${p.name}</h3>
+          <p class="font-rob text-gray-500 text-[13px] sm:text-sm leading-relaxed mb-2 clamp2">${p.description}</p>
+          <button type="button" onclick="openDetailsModal(${p.id}); return false;" class="btn btn-red px-4 py-1 text-[13px] mb-2">Details</button>
+          <p class="font-rob text-sm font-medium" style="color:#888"><span class="font-bold text-brand">Case Size:</span> ${p.caseSize}</p>
+        </div>
+
+        <!-- Price + qty -->
+        <div class="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 mt-4 sm:mt-0 flex-shrink-0">
+
+          <!-- Price -->
+          <div class="text-left sm:text-right whitespace-nowrap">
+            <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">$${p.price.toFixed(2)}</span>
+            <span class="font-rob text-gray-400 text-sm"> / case</span>
+          </div>
+
+          <!-- Qty stepper -->
+          <div class="flex items-center gap-1 rounded-full p-1" style="background:#f5f3ef">
+            <button onclick="changeQty(${p.id},-1)" type="button"
+                    class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150"
+                    style="background:white;color:#80131d;box-shadow:0 1px 4px rgba(0,0,0,.12)"
+                    onmouseenter="this.style.background='#80131d';this.style.color='white'"
+                    onmouseleave="this.style.background='white';this.style.color='#80131d'"
+                    aria-label="Decrease">−</button>
+
+            <input id="qty-${p.id}" type="number" value="${p.qty}" min="0" max="999"
+                   aria-label="Quantity for ${p.name}"
+                   onchange="setQty(${p.id}, parseInt(this.value)||0)"
+                   oninput="setQty(${p.id}, parseInt(this.value)||0)"
+                   class="w-12 text-center bg-transparent font-bold text-base font-rob focus:outline-none"
+                   style="color:#1a1a1a">
+
+            <button onclick="changeQty(${p.id},+1)" type="button"
+                    class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150"
+                    style="background:#80131d;color:white;box-shadow:0 1px 4px rgba(128,19,29,.3)"
+                    onmouseenter="this.style.background='#a81624'"
+                    onmouseleave="this.style.background='#80131d'"
+                    aria-label="Increase">+</button>
+          </div>
+
+          <!-- Line total (shown when qty > 0) -->
+          <div id="line-${p.id}" class="${p.qty > 0 ? '' : 'hidden'} text-sm font-rob text-right" style="color:#555">Subtotal: $${(p.qty * p.price).toFixed(2)} CAD</div>
+
+        </div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  if (append) {
+    document.getElementById('product-list')?.insertAdjacentHTML('beforeend', html);
+  } else {
+    const list = document.getElementById('product-list');
+    if(list) list.innerHTML = html;
+  }
+
+  const loadMoreBtn = document.getElementById('load-more-container');
+  if (loadMoreBtn) {
+    if (end < filtered.length) {
+      loadMoreBtn.classList.remove('hidden');
+    } else {
+      loadMoreBtn.classList.add('hidden');
+    }
+  }
+}
+
+// ── Cart calculations ────────────────────────────────────────
+function changeQty(id, delta) {
+  const p  = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  p.qty    = Math.max(0, p.qty + delta);
+  syncProduct(p);
+  syncGlobal();
+}
+function setQty(id, val) {
+  const p  = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  p.qty    = Math.max(0, isNaN(val) ? 0 : val);
+  syncProduct(p);
+  syncGlobal();
+}
+
+function syncProduct(p) {
+  const listQty = document.getElementById(`qty-${p.id}`);
+  if (listQty) listQty.value = p.qty;
+
+  const modalQty = document.getElementById('modal-qty');
+  if (modalQty && modalQty.dataset.id == p.id) {
+    modalQty.value = p.qty;
+  }
+
+  const el = document.getElementById(`line-${p.id}`);
+  if (el) {
+    if (p.qty > 0) {
+      el.textContent = `Subtotal: $${(p.qty * p.price).toFixed(2)} CAD`;
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  const modalLine = document.getElementById('modal-line');
+  if (modalLine && modalQty && modalQty.dataset.id == p.id) {
+    if (p.qty > 0) {
+      modalLine.textContent = `Subtotal: $${(p.qty * p.price).toFixed(2)} CAD`;
+      modalLine.classList.remove('hidden');
+    } else {
+      modalLine.classList.add('hidden');
+    }
+  }
+
+  const row = document.querySelector(`.prow[data-id="${p.id}"]`);
+  if (row) {
+    if (p.qty > 0) {
+      row.classList.remove('bg-white');
+      row.classList.add('bg-[#f5f3ef]');
+      row.style.borderColor = '#80131d';
+    } else {
+      row.classList.remove('bg-[#f5f3ef]');
+      row.classList.add('bg-white');
+      row.style.borderColor = '#f0ece6';
+    }
+  }
+}
+
+function syncGlobal() {
+  const totalUnits = PRODUCTS.reduce((s,p) => s + p.qty, 0);
+  const totalAmt   = PRODUCTS.reduce((s,p) => s + p.qty * p.price, 0);
+
+  // Header badge — show dollar total + unit count
+  const hdrTotal = document.getElementById('hdr-total');
+  const hdrUnits = document.getElementById('hdr-units');
+  if(hdrTotal) hdrTotal.textContent = `$${totalAmt.toFixed(2)}`;
+  if(hdrUnits) hdrUnits.textContent = `${totalUnits} case${totalUnits !== 1 ? 's' : ''}`;
+
+  // Pulse animation
+  if(hdrTotal) {
+    hdrTotal.classList.remove('do-pulse');
+    void hdrTotal.offsetWidth;
+    hdrTotal.classList.add('do-pulse');
+  }
+
+  // Order summary panel
+  refreshSummary(totalUnits, totalAmt);
+}
+
+// ── Order summary ────────────────────────────────────────────
+function refreshSummary(units, amt) {
+  const body   = document.getElementById('sum-body');
+  const totals = document.getElementById('sum-totals');
+  if(!body || !totals) return;
+  const sel    = PRODUCTS.filter(p => p.qty > 0);
+
+  if (!sel.length) {
+    body.innerHTML = '<p class="text-gray-400 italic text-sm">No items selected — browse the catalogue above.</p>';
+    totals.classList.add('hidden');
+    return;
+  }
+
+  body.innerHTML = sel.map(p => `
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 last:border-0 gap-3" style="border-bottom:1px solid #f5f3ef">
+      <div class="flex-1 min-w-0 pr-4">
+        <p class="font-rob font-medium text-base truncate" style="color:#1a1a1a">${p.name}</p>
+        <p class="font-rob text-sm text-gray-400 mt-1"><span class="font-bold text-brand">Case Size:</span> ${p.caseSize} &nbsp;·&nbsp; <code class="font-mono">${p.sku}</code></p>
+      </div>
+      
+      <div class="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0">
+        <!-- Interactive Stepper -->
+        <div class="flex items-center gap-1 rounded-full p-1" style="background:#f5f3ef; border: 1px solid #e8e3db;">
+          <button onclick="changeQty(${p.id},-1)" type="button" class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-lg leading-none transition-all duration-150 bg-white hover:bg-gray-100" style="color:#80131d;box-shadow:0 1px 2px rgba(0,0,0,.05)" aria-label="Decrease">−</button>
+          <input type="number" value="${p.qty}" min="0" max="999" onchange="setQty(${p.id}, parseInt(this.value)||0)" oninput="setQty(${p.id}, parseInt(this.value)||0)" class="w-8 text-center bg-transparent font-bold text-base font-rob focus:outline-none" style="color:#1a1a1a">
+          <button onclick="changeQty(${p.id},1)" type="button" class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-lg leading-none transition-all duration-150" style="background:#80131d;color:white" aria-label="Increase">+</button>
+        </div>
+
+        <div class="text-right min-w-[70px]">
+          <p class="font-rob text-base font-bold" style="color:#80131d">$${(p.qty*p.price).toFixed(2)}</p>
+        </div>
+
+        <!-- Remove item -->
+        <button onclick="changeQty(${p.id}, -${p.qty})" type="button" class="text-gray-300 hover:text-red-500 transition-colors ml-1" title="Remove item">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('tot-cases').textContent = `${units} case${units !== 1 ? 's' : ''}`;
+  document.getElementById('tot-price').textContent  = `$${amt.toFixed(2)} CAD`;
+  totals.classList.remove('hidden');
+}
+
+// ── Form submission → JSON modal ─────────────────────────────
+function handleSubmit(e) {
+  e.preventDefault();
+  const sel = PRODUCTS.filter(p => p.qty > 0);
+  if (!sel.length) { alert('Please select at least one product before submitting.'); return; }
+
+  const payload = {
+    event_type: 'preorder_submission',
+    timestamp:  new Date().toISOString(),
+    source:     'fiore-b2b-preorder-portal',
+    customer_info: {
+      name:     document.getElementById('f-name').value.trim(),
+      company:  document.getElementById('f-company').value.trim(),
+      email:    document.getElementById('f-email').value.trim(),
+      category: document.getElementById('f-category').value,
+      notes:    document.getElementById('f-notes').value.trim() || null,
+    },
+    order_items: sel.map(p => ({
+      sku:            p.sku,
+      name:           p.name,
+      case_size:      p.caseSize,
+      quantity_cases: p.qty,
+      unit_price_cad: p.price,
+      line_total_cad: parseFloat((p.qty * p.price).toFixed(2)),
+    })),
+    order_summary: {
+      total_cases:  sel.reduce((s,p) => s + p.qty, 0),
+      subtotal_cad: parseFloat(sel.reduce((s,p) => s + p.qty*p.price, 0).toFixed(2)),
+      currency:     'CAD',
+      status:       'pending_review',
+    },
+    quickbooks_meta: {
+      document_type: 'SalesOrder',
+      note:          'DO NOT invoice yet. Staff validates stock, then converts to Invoice in QB.',
+      workflow:      '1. Search customer by email → 2. Create if not found → 3. Map SKU to QB Item ID → 4. Create Sales Order',
+    },
+  };
+
+  document.getElementById('json-out').textContent = JSON.stringify(payload, null, 2);
+  const m = document.getElementById('modal');
+  if(m) m.classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('modal')?.classList.add('hidden'); }
+
+function copyJSON(btn) {
+  const txt  = document.getElementById('json-out').textContent;
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 2200);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 2200);
+  });
+}
+
+function goToForm() {
+  document.getElementById('preorder')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── Details Modal Logic ───────────────────────────────────────
+function openDetailsModal(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('details-img').src = p.img;
+  document.getElementById('details-title').textContent = p.name;
+  document.getElementById('details-size').textContent = p.caseSize;
+  document.getElementById('details-desc').innerHTML = p.description;
+  document.getElementById('details-price').textContent = '$' + p.price.toFixed(2);
+  
+  const modalQty = document.getElementById('modal-qty');
+  if(modalQty) {
+    modalQty.dataset.id = p.id;
+    modalQty.value = p.qty;
+  }
+  
+  const modalLine = document.getElementById('modal-line');
+  if(modalLine) {
+    if (p.qty > 0) {
+      modalLine.textContent = `Subtotal: $${(p.qty * p.price).toFixed(2)} CAD`;
+      modalLine.classList.remove('hidden');
+    } else {
+      modalLine.classList.add('hidden');
+    }
+  }
+
+  document.getElementById('details-modal')?.classList.remove('hidden');
+}
+
+function modalChangeQty(delta) {
+  const modalQty = document.getElementById('modal-qty');
+  if(!modalQty) return;
+  const id = parseInt(modalQty.dataset.id);
+  if (id) changeQty(id, delta);
+}
+
+function modalSetQty(val) {
+  const modalQty = document.getElementById('modal-qty');
+  if(!modalQty) return;
+  const id = parseInt(modalQty.dataset.id);
+  if (id) setQty(id, val);
+}
+
+function closeDetailsModal() {
+  document.getElementById('details-modal')?.classList.add('hidden');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderFilters();
+renderProducts();
+</script>
