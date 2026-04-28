@@ -201,48 +201,6 @@ const { title } = Astro.props;
 </button>
 
 <!-- ════════════════════════════════════════════════════════════
-     MODAL — JSON Payload
-════════════════════════════════════════════════════════════════ -->
-<div id="modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-  <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-    <div class="flex items-start justify-between px-8 py-5 flex-shrink-0" style="background:#80131d">
-      <div>
-        <h3 class="font-cap text-white text-lg">✅ Pre-Order Submitted!</h3>
-        <p class="text-white/70 text-xs font-rob mt-0.5">JSON Payload · Make.com Webhook → QuickBooks Sales Order</p>
-      </div>
-      <button onclick="closeModal()" class="text-white/60 hover:text-white transition-colors mt-0.5" aria-label="Close">
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="flex-1 overflow-y-auto scr px-8 py-6">
-      <p class="text-sm text-gray-600 font-rob mb-4">
-        Send this payload to your <strong style="color:#1a1a1a">Make.com webhook</strong>.
-        The scenario will search/create the customer in QuickBooks, map SKUs to Item IDs, then create a <strong>Sales Order</strong>.
-      </p>
-      <div class="relative">
-        <pre id="json-out" class="rounded-2xl p-5 text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap" style="background:#1a1a1a;color:#acb370"></pre>
-        <button onclick="copyJSON(this)" class="absolute top-3 right-3 text-xs rounded-full px-3 py-1 transition-colors font-rob" style="background:rgba(172,179,112,.18);color:#acb370">Copy</button>
-      </div>
-      <div class="mt-4 rounded-2xl p-4" style="border:1px solid rgba(172,179,112,.3);background:rgba(172,179,112,.06)">
-        <p class="text-xs font-rob text-gray-600 leading-relaxed">
-          <strong style="color:#acb370">Make.com Flow:</strong>
-          Webhook trigger → Search Customer (email) → Create Customer if 404 → Map SKU → QB Item ID → <strong>Create Sales Order</strong>.
-          Fiore Foods staff validates stock and converts SO to Invoice in QuickBooks with one click.
-        </p>
-      </div>
-    </div>
-
-    <div class="flex gap-3 justify-end px-8 py-5 flex-shrink-0" style="border-top:1px solid #f5f3ef">
-      <button onclick="copyJSON(this)" class="btn btn-outline px-6 py-2.5 text-sm font-rob">Copy JSON</button>
-      <button onclick="closeModal()"   class="btn btn-red    px-6 py-2.5 text-sm font-rob">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════
      DETAILS MODAL
 ════════════════════════════════════════════════════════════════ -->
 <div id="details-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
@@ -309,9 +267,6 @@ const { title } = Astro.props;
   });
 
   // Since modals are here, we attach the simple event listener to close on backdrop
-  document.getElementById('modal')?.addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
   document.getElementById('details-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeDetailsModal();
   });

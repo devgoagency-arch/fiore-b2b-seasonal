@@ -513,23 +513,7 @@ async function handleSubmit(e) {
   }
 }
 
-function closeModal() { document.getElementById('modal')?.classList.add('hidden'); }
 
-function copyJSON(btn) {
-  const txt  = document.getElementById('json-out').textContent;
-  const orig = btn.textContent;
-  navigator.clipboard.writeText(txt).then(() => {
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = orig, 2200);
-  }).catch(() => {
-    // Fallback
-    const ta = document.createElement('textarea');
-    ta.value = txt; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = orig, 2200);
-  });
-}
 
 function goToForm() {
   document.getElementById('preorder')?.scrollIntoView({ behavior:'smooth', block:'start' });
