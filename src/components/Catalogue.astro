@@ -17,7 +17,7 @@ const { products } = Astro.props;
      4 · PRODUCT CATALOGUE — LIST VIEW
 ════════════════════════════════════════════════════════════════ -->
 <section id="catalogue" class="py-16">
-  <div class="max-w-4xl mx-auto px-6">
+  <div class="max-w-[1440px] mx-auto px-6">
 
     <div class="text-center mb-10">
       <p class="font-rob font-medium text-xs tracking-[.2em] uppercase mb-2" style="color:#acb370">Our Selection</p>
@@ -46,7 +46,7 @@ const { products } = Astro.props;
     </div>
 
     <!-- Products rendered by JS -->
-    <div id="product-list" class="space-y-4"></div>
+    <div id="product-list" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
 
     <div id="load-more-container" class="text-center mt-10 hidden">
       <button onclick="loadMoreProducts()" type="button" class="btn btn-outline px-8 py-3 text-sm font-rob border-2 font-medium tracking-wide">Load More Products</button>
@@ -149,7 +149,8 @@ const { products } = Astro.props;
           </button>
         </div>
         <p class="text-gray-400 text-xs mt-3 font-rob">
-          This is a pre-order request — not a confirmed purchase. A Fiore Foods representative will follow up shortly.
+          This is a pre-order request — not a confirmed purchase. A Fiore Foods representative will follow up shortly.<br>
+          *Final sale. No returns or exchanges.
         </p>
       </div>
 
@@ -234,7 +235,7 @@ function renderProducts(append = false) {
 
       <!-- Product image -->
       <div class="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-white rounded-xl flex items-center justify-center overflow-hidden aspect-square relative">
-        <img src="${p.img}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain"
+        <img src="${p.img}" alt="${p.name}" class="absolute inset-0 w-full h-full object-cover"
              referrerpolicy="no-referrer" loading="lazy">
       </div>
 
