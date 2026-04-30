@@ -41,7 +41,7 @@ const { products } = Astro.props;
         </div>
 
         <!-- Go to Cart -->
-        <button type="button" onclick="document.getElementById('preorder')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-4 py-2 text-xs font-rob whitespace-nowrap bg-cream hover:bg-[#80131d] flex-shrink-0">↓ Go to Cart</button>
+        <button type="button" onclick="if(window.goToForm) window.goToForm(); else document.getElementById('preorder')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-4 py-2 text-xs font-rob whitespace-nowrap bg-cream hover:bg-[#80131d] flex-shrink-0">↓ Go to Cart</button>
       </div>
     </div>
 
@@ -241,10 +241,10 @@ function renderProducts(append = false) {
       </div>
 
       <!-- Info + controls -->
-      <div class="flex-1 min-w-0 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+      <div class="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-4">
 
         <!-- Text info -->
-        <div class="flex-1 min-w-0 pr-2">
+        <div class="flex-1 min-w-[220px] pr-2">
           <h3 class="font-cap text-carbon leading-snug mb-1 text-sm sm:text-base lg:text-lg font-bold">${p.name}</h3>
           <p class="font-rob text-gray-500 text-[13px] sm:text-sm leading-relaxed mb-2 clamp2">${p.description}</p>
           <button type="button" onclick="openDetailsModal(${p.id}); return false;" class="btn btn-red px-4 py-1 text-[13px] mb-2">Details</button>
@@ -252,10 +252,10 @@ function renderProducts(append = false) {
         </div>
 
         <!-- Price + qty -->
-        <div class="w-full xl:w-auto flex flex-wrap items-center justify-between gap-3 mt-4 xl:mt-0 flex-shrink-0">
+        <div class="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
 
           <!-- Price -->
-          <div class="text-left xl:text-right whitespace-nowrap">
+          <div class="text-left sm:text-right whitespace-nowrap">
             <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">$${p.price.toFixed(2)}</span>
             <span class="font-rob text-gray-400 text-sm"> / case</span>
           </div>
@@ -516,8 +516,21 @@ async function handleSubmit(e) {
 
 
 
-function goToForm() {
-  document.getElementById('preorder')?.scrollIntoView({ behavior:'smooth', block:'start' });
+window.goToForm = function() {
+  const filtered = PRODUCTS.filter(p => p.category === activeCategory);
+  let loadedMore = false;
+  
+  // Force load all remaining products synchronously to stabilize DOM height
+  while (currentPage * pageSize < filtered.length) {
+    currentPage++;
+    renderProducts(true);
+    loadedMore = true;
+  }
+  
+  // Scroll to preorder form (delay slightly if we just injected lots of nodes)
+  setTimeout(() => {
+    document.getElementById('preorder')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, loadedMore ? 150 : 0);
 }
 
 // ── Details Modal Logic ───────────────────────────────────────
