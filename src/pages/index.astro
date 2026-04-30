@@ -47,28 +47,71 @@ try {
 
   if (WC_API_URL && WC_CONSUMER_KEY && WC_CONSUMER_SECRET) {
     const authHeader = 'Basic ' + btoa(`${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`);
-    const fetchUrl = import.meta.env.WC_API_URL + '/products?per_page=100&status=publish';
-    console.log("Intentando conectar a:", fetchUrl);
+    let allData = [];
+    let page = 1;
+    let hasMore = true;
 
-    const res = await fetch(fetchUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
+    // Get category ID for 'holiday-seasonal' to filter API response
+    let categoryId = null;
+    try {
+      const catUrl = import.meta.env.WC_API_URL + `/products/categories?slug=holiday-seasonal`;
+      const catRes = await fetch(catUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        if (catData && catData.length > 0) {
+          categoryId = catData[0].id;
+          console.log("[WC API] Found category ID for holiday-seasonal:", categoryId);
+        }
       }
-    });
+    } catch (e) {
+      console.warn("[WC API] Could not fetch category ID for holiday-seasonal", e);
+    }
 
-    if (res.ok) {
-      const data = await res.json();
+    while (hasMore) {
+      let fetchUrl = import.meta.env.WC_API_URL + `/products?per_page=100&page=${page}&status=publish`;
+      if (categoryId) {
+        fetchUrl += `&category=${categoryId}`;
+      }
       
-      finalProducts = data.reduce((acc: any[], item: any) => {
-        // Validation 1: Only map elements tagged 'holiday-seasonal'
-        const isSeasonal = item.categories?.some((c: any) => c.slug === 'holiday-seasonal');
-        if (!isSeasonal) return acc; // discard immediately
+      console.log("Intentando conectar a:", fetchUrl);
 
-        // Validation 2: Child Category processing or Fallback to Parent
-        const childCat = item.categories?.find((c: any) => c.slug !== 'holiday-seasonal');
-        const finalCategory = childCat ? childCat.name.replace(/&amp;/g, '&') : "Holiday Seasonal";
+      const res = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        allData = allData.concat(data);
+        if (data.length < 100) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      } else {
+        console.warn(`[WC API] Returned status ${res.status}. Stopping fetch.`);
+        hasMore = false;
+      }
+    }
+
+    if (allData.length > 0) {
+      finalProducts = allData.reduce((acc: any[], item: any) => {
+
+        // Enforce that the product has the holiday-seasonal category
+        const hasHolidaySeasonal = item.categories?.some((c: any) => c.slug === 'holiday-seasonal');
+        if (!hasHolidaySeasonal) return acc;
+
+        // Ignore child categories and group everything under a single category pill
+        const finalCategory = "Holiday Seasonal";
 
         let rawContent = item.description ? item.description : (item.short_description || "");
         
@@ -113,7 +156,7 @@ try {
 
       console.log(`[WC API] Successfully fetched and parsed ${finalProducts.length} published products.`);
     } else {
-      console.warn(`[WC API] Returned status ${res.status}. Falling back to mock data.`);
+      console.warn(`[WC API] Failed to fetch data. Falling back to mock data.`);
     }
   }
 } catch (error) {

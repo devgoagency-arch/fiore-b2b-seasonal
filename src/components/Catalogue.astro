@@ -48,9 +48,8 @@ const { products } = Astro.props;
     <!-- Products rendered by JS -->
     <div id="product-list" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
 
-    <div id="load-more-container" class="text-center mt-10 hidden">
-      <button onclick="loadMoreProducts()" type="button" class="btn btn-outline px-8 py-3 text-sm font-rob border-2 font-medium tracking-wide">Load More Products</button>
-    </div>
+    <!-- Sentinel for Infinite Scroll -->
+    <div id="sentinel" class="h-10 mt-4"></div>
 
   </div>
 </section>
@@ -175,12 +174,12 @@ const PRODUCTS = BASE_PRODUCTS.map(p => ({
 const allCats = PRODUCTS.map(p => p.category).filter(c => c && c !== 'Uncategorized');
 const CATEGORIES = [...new Set(allCats)].sort();
 
-let activeCategory = 'All';
+let activeCategory = CATEGORIES.length > 0 ? CATEGORIES[0] : '';
 let currentPage = 1;
-const pageSize = 12;
+const pageSize = 20;
 
 function renderFilters() {
-  const cats = ['All', ...CATEGORIES];
+  const cats = [...CATEGORIES];
   
   // Desktop
   const desktopContainer = document.getElementById('category-filters-desktop');
@@ -214,13 +213,15 @@ function filterProducts(cat) {
 }
 
 function loadMoreProducts() {
+  const filtered = PRODUCTS.filter(p => p.category === activeCategory);
+  if (currentPage * pageSize >= filtered.length) return;
   currentPage++;
   renderProducts(true);
 }
 
 // ── Render product rows ───────────────────────────────────────
 function renderProducts(append = false) {
-  const filtered = activeCategory === 'All' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
+  const filtered = PRODUCTS.filter(p => p.category === activeCategory);
   
   const start = append ? (currentPage - 1) * pageSize : 0;
   const end = currentPage * pageSize;
@@ -244,7 +245,6 @@ function renderProducts(append = false) {
 
         <!-- Text info -->
         <div class="flex-1 min-w-0 pr-2">
-          <div class="text-sm font-bold mb-1" style="color:#acb370">${p.category.toUpperCase()}</div>
           <h3 class="font-cap text-carbon leading-snug mb-1 text-sm sm:text-base lg:text-lg font-bold">${p.name}</h3>
           <p class="font-rob text-gray-500 text-[13px] sm:text-sm leading-relaxed mb-2 clamp2">${p.description}</p>
           <button type="button" onclick="openDetailsModal(${p.id}); return false;" class="btn btn-red px-4 py-1 text-[13px] mb-2">Details</button>
@@ -300,12 +300,12 @@ function renderProducts(append = false) {
     if(list) list.innerHTML = html;
   }
 
-  const loadMoreBtn = document.getElementById('load-more-container');
-  if (loadMoreBtn) {
+  const sentinel = document.getElementById('sentinel');
+  if (sentinel) {
     if (end < filtered.length) {
-      loadMoreBtn.classList.remove('hidden');
+      sentinel.style.display = 'block';
     } else {
-      loadMoreBtn.classList.add('hidden');
+      sentinel.style.display = 'none';
     }
   }
 }
@@ -570,4 +570,15 @@ function closeDetailsModal() {
 // ── Init ──────────────────────────────────────────────────────
 renderFilters();
 renderProducts();
+
+// Setup Infinite Scroll
+const sentinelEl = document.getElementById('sentinel');
+if (sentinelEl) {
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      loadMoreProducts();
+    }
+  }, { rootMargin: '200px' });
+  observer.observe(sentinelEl);
+}
 </script>
