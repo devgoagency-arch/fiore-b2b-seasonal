@@ -136,6 +136,8 @@ const { products } = Astro.props;
       </div>
 
       <div class="mt-7 text-center">
+        <!-- Cloudflare Turnstile Widget -->
+        <div class="cf-turnstile mb-4 flex justify-center" data-sitekey="0x4AAAAAADGdWFU5FsRD_Aa5" data-callback="onTurnstileSuccess"></div>
         <div class="flex flex-col-reverse sm:flex-row items-center justify-center gap-4">
           <button type="button" onclick="document.getElementById('catalogue')?.scrollIntoView({behavior: 'smooth'})" class="btn btn-outline px-8 py-3.5 font-cap text-base bg-white hover:bg-[#80131d]">
             ↑ Keep Shopping
@@ -441,6 +443,14 @@ async function handleSubmit(e) {
   const sel = PRODUCTS.filter(p => p.qty > 0);
   if (!sel.length) { alert('Please select at least one product before submitting.'); return; }
 
+  // Extract Turnstile token
+  const formData = new FormData(e.target);
+  const turnstileToken = formData.get('cf-turnstile-response');
+  if (!turnstileToken) {
+    alert('Please complete the security check to prove you are human.');
+    return;
+  }
+
   const submitBtn = e.target.querySelector('button[type="submit"]');
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -450,6 +460,7 @@ async function handleSubmit(e) {
 
   const payload = {
     event_type: 'preorder_submission',
+    turnstile_token: turnstileToken,
     timestamp:  new Date().toISOString(),
     source:     'fiore-b2b-preorder-portal',
     customer_info: {
