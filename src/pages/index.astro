@@ -74,7 +74,7 @@ try {
     }
 
     while (hasMore) {
-      let fetchUrl = import.meta.env.WC_API_URL + `/products?per_page=100&page=${page}&status=publish`;
+      let fetchUrl = import.meta.env.WC_API_URL + `/products?per_page=100&page=${page}&status=publish&orderby=menu_order&order=asc`;
       if (categoryId) {
         fetchUrl += `&category=${categoryId}`;
       }
