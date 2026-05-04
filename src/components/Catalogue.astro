@@ -11,6 +11,30 @@ export interface Props {
 }
 
 const { products } = Astro.props;
+
+const processedProducts = products.map((product) => {
+  let quantity = 1;
+  let showUnitPrice = false;
+
+  if (product.caseSize && typeof product.caseSize === 'string') {
+    const parts = product.caseSize.toLowerCase().split('x');
+    if (parts.length > 1) {
+      const parsedQty = parseInt(parts[0].trim(), 10);
+      if (!isNaN(parsedQty) && parsedQty > 0) {
+        quantity = parsedQty;
+        showUnitPrice = true;
+      }
+    }
+  }
+
+  const unitPrice = (product.price / quantity).toFixed(2);
+
+  return {
+    ...product,
+    unitPrice,
+    showUnitPrice
+  };
+});
 ---
 
 <!-- ════════════════════════════════════════════════════════════
@@ -160,7 +184,7 @@ const { products } = Astro.props;
 </section>
 
 <!-- Send props to global window to bypass scoping -->
-<script is:inline set:html={`window.BASE_PRODUCTS = ${JSON.stringify(products)};`} />
+<script is:inline set:html={`window.BASE_PRODUCTS = ${JSON.stringify(processedProducts)};`} />
 
 <script is:inline>
 // ── Product data ─────────────────────────────────────────────
@@ -257,9 +281,12 @@ function renderProducts(append = false) {
         <div class="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
 
           <!-- Price -->
-          <div class="text-left sm:text-right whitespace-nowrap">
-            <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">$${p.price.toFixed(2)}</span>
-            <span class="font-rob text-gray-400 text-sm"> / case</span>
+          <div class="flex flex-col text-left sm:text-right whitespace-nowrap justify-center">
+            <div>
+              <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">$${p.price.toFixed(2)}</span>
+              <span class="font-rob text-gray-400 text-sm"> / case</span>
+            </div>
+            ${p.showUnitPrice ? `<span class="text-sm text-gray-500 mt-1">$${p.unitPrice} / unit</span>` : ''}
           </div>
 
           <!-- Qty stepper -->
