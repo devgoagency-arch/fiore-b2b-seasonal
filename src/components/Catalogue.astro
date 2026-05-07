@@ -1,12 +1,16 @@
 ---
+import { Image } from 'astro:assets';
+
 export interface Props {
   products: {
+    id: number;
     sku: string;
     name: string;
     description: string;
     caseSize: string;
     price: number;
     img: string;
+    category: string;
   }[];
 }
 
@@ -69,8 +73,57 @@ const processedProducts = products.map((product) => {
       </div>
     </div>
 
-    <!-- Products rendered by JS -->
-    <div id="product-list" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+    <!-- Products pre-rendered by Astro, visibility toggled by JS -->
+    <div id="product-list" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {processedProducts.map(p => (
+        <div class="prow bg-white rounded-3xl overflow-hidden flex flex-row flex-wrap sm:flex-nowrap items-center p-4 gap-4 shadow-sm transition-colors duration-200 hidden" style="border:1px solid #f0ece6; display: none;" data-id={p.id} data-category={p.category}>
+
+          <!-- Product image -->
+          <div class="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-white rounded-xl flex items-center justify-center overflow-hidden aspect-square relative" onclick={`openDetailsModal(${p.id})`}>
+            {p.img ? (
+              <Image src={p.img} alt={p.name} width={300} height={300} 
+                class="absolute inset-0 w-full h-full object-cover cursor-pointer transition-transform hover:scale-105" 
+                data-zoom-src={p.img} />
+            ) : (
+              <div class="absolute inset-0 w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">No Image</div>
+            )}
+          </div>
+
+          <!-- Info + controls -->
+          <div class="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-4">
+            <!-- Text info -->
+            <div class="flex-1 min-w-[220px] pr-2">
+              <h3 class="font-cap text-carbon leading-snug mb-1 text-sm sm:text-base lg:text-lg font-bold">{p.name}</h3>
+              <p class="font-rob text-gray-500 text-[13px] sm:text-sm leading-relaxed mb-2 clamp2" set:html={p.description}></p>
+              <button type="button" onclick={`openDetailsModal(${p.id}); return false;`} class="btn btn-red px-4 py-1 text-[13px] mb-2">Details</button>
+              <p class="font-rob text-sm font-medium" style="color:#888"><span class="font-bold text-brand">Case Size:</span> {p.caseSize}</p>
+            </div>
+
+            <!-- Price + qty -->
+            <div class="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
+              <!-- Price -->
+              <div class="flex flex-col text-left sm:text-right whitespace-nowrap justify-center">
+                <div>
+                  <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">${p.price.toFixed(2)}</span>
+                  <span class="font-rob text-gray-400 text-sm"> / case</span>
+                </div>
+                {p.showUnitPrice && <span class="text-sm text-gray-500 mt-1">${p.unitPrice} / unit</span>}
+              </div>
+
+              <!-- Qty stepper -->
+              <div class="flex items-center gap-1 rounded-full p-1" style="background:#f5f3ef">
+                <button onclick={`changeQty(${p.id},-1)`} type="button" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150" style="background:white;color:#80131d;box-shadow:0 1px 4px rgba(0,0,0,.12)" onmouseenter="this.style.background='#80131d';this.style.color='white'" onmouseleave="this.style.background='white';this.style.color='#80131d'" aria-label="Decrease">−</button>
+                <input id={`qty-${p.id}`} type="number" value="0" min="0" max="999" aria-label={`Quantity for ${p.name}`} onchange={`setQty(${p.id}, parseInt(this.value)||0)`} oninput={`setQty(${p.id}, parseInt(this.value)||0)`} class="w-12 text-center bg-transparent font-bold text-base font-rob focus:outline-none" style="color:#1a1a1a" />
+                <button onclick={`changeQty(${p.id},+1)`} type="button" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150" style="background:#80131d;color:white;box-shadow:0 1px 4px rgba(128,19,29,.3)" onmouseenter="this.style.background='#a81624'" onmouseleave="this.style.background='#80131d'" aria-label="Increase">+</button>
+              </div>
+
+              <!-- Line total (shown when qty > 0) -->
+              <div id={`line-${p.id}`} class="hidden text-sm font-rob text-right" style="color:#555">Subtotal: $0.00 CAD</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
 
     <!-- Sentinel for Infinite Scroll -->
     <div id="sentinel" class="h-10 mt-4"></div>
@@ -248,86 +301,28 @@ function loadMoreProducts() {
 // ── Render product rows ───────────────────────────────────────
 function renderProducts(append = false) {
   const filtered = PRODUCTS.filter(p => p.category === activeCategory);
-  
-  const start = append ? (currentPage - 1) * pageSize : 0;
   const end = currentPage * pageSize;
-  const toRender = filtered.slice(start, end);
-
-  const html = toRender.map(p => {
-    const isActive = p.qty > 0;
-    const rowBg = isActive ? 'bg-[#f5f3ef]' : 'bg-white';
-    const rowBorder = isActive ? '#80131d' : '#f0ece6';
-    return `
-    <div class="prow ${rowBg} rounded-3xl overflow-hidden flex flex-row flex-wrap sm:flex-nowrap items-center p-4 gap-4 shadow-sm transition-colors duration-200" style="border:1px solid ${rowBorder}" data-id="${p.id}">
-
-      <!-- Product image -->
-      <div class="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-white rounded-xl flex items-center justify-center overflow-hidden aspect-square relative">
-        <img src="${p.img}" alt="${p.name}" class="absolute inset-0 w-full h-full object-cover"
-             referrerpolicy="no-referrer" loading="lazy">
-      </div>
-
-      <!-- Info + controls -->
-      <div class="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-4">
-
-        <!-- Text info -->
-        <div class="flex-1 min-w-[220px] pr-2">
-          <h3 class="font-cap text-carbon leading-snug mb-1 text-sm sm:text-base lg:text-lg font-bold">${p.name}</h3>
-          <p class="font-rob text-gray-500 text-[13px] sm:text-sm leading-relaxed mb-2 clamp2">${p.description}</p>
-          <button type="button" onclick="openDetailsModal(${p.id}); return false;" class="btn btn-red px-4 py-1 text-[13px] mb-2">Details</button>
-          <p class="font-rob text-sm font-medium" style="color:#888"><span class="font-bold text-brand">Case Size:</span> ${p.caseSize}</p>
-        </div>
-
-        <!-- Price + qty -->
-        <div class="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
-
-          <!-- Price -->
-          <div class="flex flex-col text-left sm:text-right whitespace-nowrap justify-center">
-            <div>
-              <span class="font-cap text-brand text-2xl leading-none" style="color:#80131d">$${p.price.toFixed(2)}</span>
-              <span class="font-rob text-gray-400 text-sm"> / case</span>
-            </div>
-            ${p.showUnitPrice ? `<span class="text-sm text-gray-500 mt-1">$${p.unitPrice} / unit</span>` : ''}
-          </div>
-
-          <!-- Qty stepper -->
-          <div class="flex items-center gap-1 rounded-full p-1" style="background:#f5f3ef">
-            <button onclick="changeQty(${p.id},-1)" type="button"
-                    class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150"
-                    style="background:white;color:#80131d;box-shadow:0 1px 4px rgba(0,0,0,.12)"
-                    onmouseenter="this.style.background='#80131d';this.style.color='white'"
-                    onmouseleave="this.style.background='white';this.style.color='#80131d'"
-                    aria-label="Decrease">−</button>
-
-            <input id="qty-${p.id}" type="number" value="${p.qty}" min="0" max="999"
-                   aria-label="Quantity for ${p.name}"
-                   onchange="setQty(${p.id}, parseInt(this.value)||0)"
-                   oninput="setQty(${p.id}, parseInt(this.value)||0)"
-                   class="w-12 text-center bg-transparent font-bold text-base font-rob focus:outline-none"
-                   style="color:#1a1a1a">
-
-            <button onclick="changeQty(${p.id},+1)" type="button"
-                    class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xl leading-none select-none transition-all duration-150"
-                    style="background:#80131d;color:white;box-shadow:0 1px 4px rgba(128,19,29,.3)"
-                    onmouseenter="this.style.background='#a81624'"
-                    onmouseleave="this.style.background='#80131d'"
-                    aria-label="Increase">+</button>
-          </div>
-
-          <!-- Line total (shown when qty > 0) -->
-          <div id="line-${p.id}" class="${p.qty > 0 ? '' : 'hidden'} text-sm font-rob text-right" style="color:#555">Subtotal: $${(p.qty * p.price).toFixed(2)} CAD</div>
-
-        </div>
-      </div>
-    </div>
-  `;
-  }).join('');
-
-  if (append) {
-    document.getElementById('product-list')?.insertAdjacentHTML('beforeend', html);
-  } else {
-    const list = document.getElementById('product-list');
-    if(list) list.innerHTML = html;
-  }
+  
+  const allRows = document.querySelectorAll('.prow');
+  
+  allRows.forEach(row => {
+    const rowId = parseInt(row.getAttribute('data-id'));
+    const p = PRODUCTS.find(x => x.id === rowId);
+    
+    if (p && p.category === activeCategory) {
+      const index = filtered.findIndex(x => x.id === rowId);
+      if (index !== -1 && index < end) {
+        row.style.display = 'flex';
+        row.classList.remove('hidden');
+      } else {
+        row.style.display = 'none';
+        row.classList.add('hidden');
+      }
+    } else {
+      row.style.display = 'none';
+      row.classList.add('hidden');
+    }
+  });
 
   const sentinel = document.getElementById('sentinel');
   if (sentinel) {
@@ -575,7 +570,11 @@ window.goToForm = function() {
 function openDetailsModal(id) {
   const p = PRODUCTS.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('details-img').src = p.img;
+  const imgEl = document.getElementById('details-img');
+  if (imgEl) {
+    imgEl.src = p.img;
+    imgEl.setAttribute('data-zoom-src', p.img);
+  }
   document.getElementById('details-title').textContent = p.name;
   document.getElementById('details-size').textContent = p.caseSize;
   document.getElementById('details-desc').innerHTML = p.description;

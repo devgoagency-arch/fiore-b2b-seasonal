@@ -227,10 +227,13 @@ const { title } = Astro.props;
     
     <div class="flex-1 overflow-y-auto scr flex flex-col sm:flex-row">
       <!-- Image -->
-      <div class="w-full sm:w-2/5 aspect-square flex-shrink-0 relative">
-        <img id="details-img" src="" alt="" class="absolute inset-0 w-full h-full object-contain"
+      <div class="w-full sm:w-2/5 aspect-square flex-shrink-0 relative group">
+        <img id="details-img" src="" alt="" class="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
              referrerpolicy="no-referrer"
              onerror="this.src='https://placehold.co/600x600?text=No+Image+Found'; this.onerror=null;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="absolute top-3 right-3 z-10 bg-white/70 p-2 rounded-full shadow-sm text-gray-800 backdrop-blur-sm pointer-events-none w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
       </div>
       
       <!-- Content -->
@@ -266,6 +269,11 @@ const { title } = Astro.props;
   </div>
 </div>
 
+<!-- ZOOM OVERLAY -->
+<div id="zoom-overlay" class="hidden fixed inset-0 z-[150] bg-black/90 cursor-zoom-out flex items-center justify-center backdrop-blur-md opacity-0 transition-opacity duration-300">
+  <img id="zoom-img" src="" alt="Zoomed Product" class="max-w-[95vw] max-h-[95vh] object-contain transition-transform duration-300 scale-95" />
+</div>
+
 <script is:inline>
   // Show/Hide Floating Button on window scroll
   window.addEventListener('scroll', () => {
@@ -284,6 +292,44 @@ const { title } = Astro.props;
   document.getElementById('details-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeDetailsModal();
   });
+
+  // Zoom logic
+  const detailsImg = document.getElementById('details-img');
+  const zoomOverlay = document.getElementById('zoom-overlay');
+  const zoomImg = document.getElementById('zoom-img');
+
+  if (detailsImg && zoomOverlay && zoomImg) {
+    detailsImg.addEventListener('click', () => {
+      // Read the data-zoom-src (or fallback to src) to get the high-res image
+      zoomImg.src = detailsImg.getAttribute('data-zoom-src') || detailsImg.src;
+      zoomOverlay.classList.remove('hidden');
+      // small delay to allow display:block to apply before animating opacity
+      requestAnimationFrame(() => {
+        zoomOverlay.classList.remove('opacity-0');
+        zoomImg.classList.remove('scale-95');
+        zoomImg.classList.add('scale-100');
+      });
+    });
+
+    const closeZoom = () => {
+      zoomOverlay.classList.add('opacity-0');
+      zoomImg.classList.remove('scale-100');
+      zoomImg.classList.add('scale-95');
+      setTimeout(() => zoomOverlay.classList.add('hidden'), 300);
+    };
+
+    zoomOverlay.addEventListener('click', closeZoom);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!zoomOverlay.classList.contains('hidden')) {
+          closeZoom();
+        } else if (document.getElementById('details-modal') && !document.getElementById('details-modal').classList.contains('hidden')) {
+          closeDetailsModal();
+        }
+      }
+    });
+  }
 </script>
 
 </body>
